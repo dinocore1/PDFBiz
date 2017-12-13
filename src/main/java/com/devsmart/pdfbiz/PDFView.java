@@ -4,6 +4,7 @@ package com.devsmart.pdfbiz;
 import com.google.common.collect.ImmutableMap;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,15 @@ public class PDFView extends JComponent {
         PDPage page = mDoc.getPage(pageIndex);
         final int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
 
-        final float factor = dpi / 72f;
-        mScale = factor;
+        //final float factor = dpi / 72f;
+        //mScale = factor;
 
-        mPageSize.setRect(0, 0, factor * page.getMediaBox().getWidth(), factor * page.getMediaBox().getHeight());
+        final float factor = 1.0f;
+
+        PDRectangle box = page.getBBox();
+
+
+        mPageSize.setRect(0, 0, factor * box.getWidth(), factor * box.getHeight());
         mPageIndex = pageIndex;
 
     }
@@ -61,12 +67,28 @@ public class PDFView extends JComponent {
 
         mViewTransform.setToIdentity();
 
-        int viewWidth = getWidth();
+        float outputImageWidth;
+        float outputImageHeight;
 
-        if(viewWidth > mPageSize.getWidth()) {
-            float dx = (float) ((viewWidth - mPageSize.getWidth()) / 2f);
-            mViewTransform.translate(dx, 0);
+        float widthScreen = getWidth();
+        float heightScreen = getHeight();
+
+        float widthImage = (float) mPageSize.getWidth();
+        float heightImage = (float) mPageSize.getHeight();
+
+        float screenR = widthScreen / heightScreen;
+        float imageR = widthImage / heightImage;
+
+        if(screenR > imageR) {
+            outputImageWidth = widthImage * heightScreen/heightImage;
+            outputImageHeight = heightScreen;
+        } else {
+            outputImageWidth = widthScreen;
+            outputImageHeight = heightImage * widthScreen/widthImage;
         }
+
+        mViewTransform.translate((widthScreen-outputImageWidth)/2f, (heightScreen-outputImageHeight)/2f);
+        mViewTransform.scale(outputImageWidth / mPageSize.getWidth(), outputImageHeight / mPageSize.getHeight());
 
 
         super.doLayout();
