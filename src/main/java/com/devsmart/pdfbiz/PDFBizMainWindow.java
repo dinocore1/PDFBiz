@@ -51,11 +51,18 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
             return false;
         }
     };
+    private final JButton mTextButton;
 
     public PDFBizMainWindow() {
         super("PDFBiz");
         setLayout(new MigLayout("fill"));
         addWindowListener(this);
+
+        JToolBar toolBar = new JToolBar();
+        mTextButton = new JButton("Text");
+        toolBar.add(mTextButton);
+        add(toolBar, "");
+
 
         setTransferHandler(mFileDropHandler);
 
