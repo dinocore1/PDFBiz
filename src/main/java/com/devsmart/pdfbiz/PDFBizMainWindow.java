@@ -10,12 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.pdfbox.cos.COSName.FDF;
 
 
 public class PDFBizMainWindow extends JFrame implements WindowListener {
@@ -52,6 +55,7 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
         }
     };
     private final JButton mTextButton;
+    private final DocumentView mDocumentView;
 
     public PDFBizMainWindow() {
         super("PDFBiz");
@@ -61,7 +65,10 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
         JToolBar toolBar = new JToolBar();
         mTextButton = new JButton("Text");
         toolBar.add(mTextButton);
-        add(toolBar, "");
+        add(toolBar, "dock north");
+
+        mDocumentView = new DocumentView();
+        add(mDocumentView, "dock center, grow");
 
 
         setTransferHandler(mFileDropHandler);
@@ -71,12 +78,12 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
     public void loadPDF(File pdfFile) {
         BackgroundTask.runBackgroundTask(new BackgroundTask() {
 
-            public PDDocument mDoc;
+            public PDFView mPDFBackground;
 
             @Override
             public void onBackground() {
                 try {
-                    mDoc = PDDocument.load(pdfFile);
+                    mPDFBackground = new PDFView(PDDocument.load(pdfFile));
 
                 } catch (Exception e) {
                     LOGGER.error("", e);
@@ -86,11 +93,8 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
             @Override
             public void onAfter() {
                 super.onAfter();
-                if(mDoc != null) {
-                    //add(new JLabel("Hello World"), "grow");
-                    add(new PDFView(mDoc), "grow");
-                    revalidate();
-                    repaint();
+                if(mPDFBackground != null) {
+                    mDocumentView.setBackground(mPDFBackground);
                 }
             }
         });
