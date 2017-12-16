@@ -25,6 +25,7 @@ public class DocumentView extends JComponent {
             .build();
 
     private Background mBackground;
+    private AffineTransform mDefaultMatrix = new AffineTransform();
     private AffineTransform mViewMatrix = new AffineTransform();
     private Rectangle2D.Float mPageSize = new Rectangle2D.Float();
     private Deque<Mode> mModeStack = new ArrayDeque<Mode>();
@@ -32,48 +33,64 @@ public class DocumentView extends JComponent {
     private float mMinImageHeight;
     private double mMinScale;
 
+
     private class Mode extends MouseAdapter {
 
+    }
+
+    private AffineTransform interpolate(AffineTransform src, AffineTransform dest, double factor) {
+        double[] a = new double[6];
+        double[] b = new double[6];
+        src.getMatrix(a);
+        dest.getMatrix(b);
+
+        for(int i=0;i<6;i++) {
+            b[i] = (1.0-factor) * a[i] + factor * b[i];
+        }
+
+        return new AffineTransform(b);
     }
 
     private class ZoomMode extends Mode {
 
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            int x = e.getX();
-            int y = e.getY();
-
-            LOGGER.info("mouseWheel: {},{} {}", x, y, e.getPreciseWheelRotation());
-
-            double scale = 0.01 * e.getPreciseWheelRotation();
-
-            scale = Math.max(mMinScale, mViewMatrix.getScaleX() + scale);
-
-            scale = 1.0 + scale - mViewMatrix.getScaleX();
-
-            Point2D.Float outPoint = new Point2D.Float();
 
             try {
-                mViewMatrix.inverseTransform(new Point2D.Float(x, y), outPoint);
 
-                AffineTransform transform = new AffineTransform();
+                int x = e.getX();
+                int y = e.getY();
 
-                transform.translate(outPoint.getX(), outPoint.getY());
+                double scaleDelta = 0.01 * e.getPreciseWheelRotation();
+                double absScale = Math.max(mMinScale, mViewMatrix.getScaleX() + scaleDelta);
 
-                transform.scale(scale, scale);
+                LOGGER.info("mouseWheelMoved() scaleDelta {} absScale {}", scaleDelta, absScale);
 
-                transform.translate(-outPoint.getX(), -outPoint.getY());
+                if(scaleDelta > 0.0) {
 
-                
+                    Point2D.Float mousePoint = new Point2D.Float();
+                    mViewMatrix.inverseTransform(new Point2D.Float(x, y), mousePoint);
 
-                mViewMatrix.concatenate(transform);
+                    AffineTransform transform = new AffineTransform();
+
+                    transform.translate(mousePoint.getX(), mousePoint.getY());
+
+                    transform.scale(1.0 + scaleDelta, 1.0 + scaleDelta);
+
+                    transform.translate(-mousePoint.getX(), -mousePoint.getY());
+
+                    mViewMatrix.concatenate(transform);
+
+                } else {
+
+                    mViewMatrix = interpolate(mViewMatrix, mDefaultMatrix, mMinScale / absScale);
+
+                }
+
 
             } catch (NoninvertibleTransformException e1) {
                 LOGGER.error("", e);
             }
-
-
-            //mViewMatrix.scale(scale, scale);
 
 
             e.consume();
@@ -118,21 +135,8 @@ public class DocumentView extends JComponent {
     }
 
     public void center() {
-
-
         calculateMinDim();
-        float widthScreen = getWidth();
-        float heightScreen = getHeight();
-
-
-
-        mViewMatrix.setToIdentity();
-
-        mViewMatrix.translate((widthScreen-mMinImageWidth)/2f, (heightScreen-mMinImageHeight)/2f);
-
-        mMinScale = mMinImageWidth / mPageSize.getWidth();
-        mViewMatrix.scale(mMinScale, mMinScale);
-
+        mViewMatrix.setTransform(mDefaultMatrix);
     }
 
     private void calculateMinDim() {
@@ -152,6 +156,12 @@ public class DocumentView extends JComponent {
             mMinImageWidth = widthScreen;
             mMinImageHeight = heightImage * widthScreen/widthImage;
         }
+
+        mMinScale = mMinImageWidth / mPageSize.getWidth();
+
+        mDefaultMatrix.setToIdentity();
+        mDefaultMatrix.translate((widthScreen-mMinImageWidth)/2.0, (heightScreen-mMinImageHeight)/2.0);
+        mDefaultMatrix.scale(mMinScale, mMinScale);
     }
 
     @Override
