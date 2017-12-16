@@ -12,8 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
+import java.awt.event.*;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -56,6 +55,7 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
     };
     private final JButton mTextButton;
     private final DocumentView mDocumentView;
+    private Object mMode;
 
     public PDFBizMainWindow() {
         super("PDFBiz");
@@ -64,6 +64,7 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
 
         JToolBar toolBar = new JToolBar();
         mTextButton = new JButton("Text");
+        mTextButton.addActionListener(mOnTextButton);
         toolBar.add(mTextButton);
         add(toolBar, "dock north");
 
@@ -74,6 +75,14 @@ public class PDFBizMainWindow extends JFrame implements WindowListener {
         setTransferHandler(mFileDropHandler);
 
     }
+
+    private final ActionListener mOnTextButton = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            mTextButton.setEnabled(false);
+            mDocumentView.addText();
+        }
+    };
 
     public void loadPDF(File pdfFile) {
         BackgroundTask.runBackgroundTask(new BackgroundTask() {
